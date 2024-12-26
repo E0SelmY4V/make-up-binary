@@ -88,26 +88,45 @@ impl<S: PrimInt, T: PrimInt + Hash + Binary> Maker<S, T> {
         }
         step
     }
+    fn get_combination(&self, mut size: T, pos_ori: Vec<T>) -> Vec<T> {
+        let mut pos = Vec::new();
+        loop {
+            let mut counter = T::one();
+            let mut check = T::zero();
+            for no in 0..pos_ori.len() {
+                if size | counter == size {
+                    check = check | pos_ori[no];
+                }
+                counter = counter << 1;
+            }
+            pos.push(check);
+            if size == T::zero() {
+                break;
+            }
+            size = size - T::one();
+        }
+        pos
+    }
     pub fn test_and(&mut self, target: T) -> Step<S, T> {
         // println!("andin {:0>8}", format!("{:b}", target));
         let mut min_step = Step(S::max_value(), StepMethod::Magic);
         let mut check = target;
         let mut counter = T::one();
         let mut pos_ori: Vec<T> = vec![];
+        let mut size = T::zero();
         while counter != T::zero() {
             if check >> 1 << 1 == check {
                 pos_ori.push(counter);
+                size = (size << 1) + T::one();
             }
             counter = counter << 1;
             check = check >> 1;
         }
-        let mut pos = vec![];
-        for n in pos_ori {
-            let step = self.make(target | n);
-            if step.1 != StepMethod::Magic {
-                pos.push(n | target);
-            }
-        }
+        let pos: Vec<T> = self
+            .get_combination(size, pos_ori)
+            .into_iter()
+            .filter(|&x| self.make(x).1 != StepMethod::Magic)
+            .collect();
         for i in 0..pos.len() {
             for j in 0..i {
                 let a = target | pos[i];
@@ -128,20 +147,20 @@ impl<S: PrimInt, T: PrimInt + Hash + Binary> Maker<S, T> {
         let mut check = target;
         let mut counter = T::one();
         let mut pos_ori: Vec<T> = vec![];
+        let mut size = T::zero();
         while counter != T::zero() {
             if check >> 1 << 1 != check {
                 pos_ori.push(counter);
+                size = (size << 1) + T::one();
             }
             counter = counter << 1;
             check = check >> 1;
         }
-        let mut pos = vec![];
-        for n in pos_ori {
-            let step = self.make(target - n);
-            if step.1 != StepMethod::Magic {
-                pos.push(target - n);
-            }
-        }
+        let pos: Vec<T> = self
+            .get_combination(size, pos_ori)
+            .into_iter()
+            .filter(|&x| self.make(x).1 != StepMethod::Magic)
+            .collect();
         for i in 0..pos.len() {
             for j in 0..i {
                 let a = target - pos[i];
