@@ -38,15 +38,15 @@ pub struct Maker<T> {
     pub target: T,
     targets: VecDeque<T>,
     pub step_map: HashMap<T, Step<T>>,
-    pub routes: HashMap<T, HashSet<Route<T>>>,
+    pub routes: HashMap<T, Vec<Route<T>>>,
 }
 
 impl<T: PrimInt + Hash + Binary> Maker<T> {
     pub fn new(factors: HashSet<T>, target: T) -> Maker<T> {
         let step_map: HashMap<T, Step<T>> =
             HashMap::from_iter(factors.iter().map(|&factor| (factor, Step::Exist)));
-        let routes: HashMap<T, HashSet<Route<T>>> =
-            HashMap::from_iter(factors.iter().map(|&factor| (factor, HashSet::new())));
+        let routes: HashMap<T, Vec<Route<T>>> =
+            HashMap::from_iter(factors.iter().map(|&factor| (factor, Vec::new())));
         Maker {
             factors,
             target,
@@ -86,20 +86,18 @@ impl<T: PrimInt + Hash + Binary> Maker<T> {
                 }
             }
         } else {
-            self.routes
-                .entry(target)
-                .or_insert(HashSet::new())
-                .insert(route);
+            self.routes.entry(target).or_insert(Vec::new()).push(route);
         }
         false
     }
     fn fine(&mut self, target: T) -> bool {
         // println!("fine {:0>8}", format!("{:b}", target));
-        let routes = self.routes.remove(&target);
+        let routes_option = self.routes.remove(&target);
         if target == self.target {
             return true;
         }
-        for route in routes.unwrap() {
+        let mut routes = routes_option.unwrap();
+        while let Some(route) = routes.pop() {
             if self.deal_route(route, target, true) {
                 return true;
             }
